@@ -1,0 +1,8 @@
+{
+  "Enabled": true,
+  "Webhook": "https://discord.com/api/webhooks/...",
+  "Modules": {
+    "SeedsAndGears": true,
+    "Weather": true
+  }
+}
