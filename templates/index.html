@@ -2,232 +2,139 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>🌿 Grow a Garden Admin Panel</title>
-  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <title>Grow a Garden Admin Panel</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    :root {
-      --bg-light: #f5fdf6;
-      --bg-dark: #121212;
-      --text-light: #333;
-      --text-dark: #e0e0e0;
-      --primary: #66bb6a;
-      --accent: #2e7d32;
-      --card-bg-light: #ffffff;
-      --card-bg-dark: #1e1e1e;
-      --border-light: #dcedc8;
-      --border-dark: #2a2a2a;
-    }
     body {
-      font-family: 'Inter', sans-serif;
-      background: var(--bg-light);
-      color: var(--text-light);
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #f5f5f5;
+      color: #222;
       margin: 0;
-      padding: 2rem;
+      padding: 20px;
       transition: background 0.3s, color 0.3s;
     }
-    body.dark {
-      background: var(--bg-dark);
-      color: var(--text-dark);
+    .dark {
+      background-color: #121212;
+      color: #ddd;
     }
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+    h1 { font-size: 2em; margin-bottom: 10px; }
+    h2 { margin-top: 30px; }
+    .section { margin-bottom: 20px; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 5px 0; }
+    .input-group { margin-bottom: 10px; }
+    input[type="text"] {
+      width: 300px;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
     }
-    h1 {
-      font-size: 2rem;
-      color: var(--accent);
-      margin: 0;
-    }
-    .controls button {
-      margin-left: 10px;
-      background: var(--primary);
-      color: #fff;
-      padding: 0.5rem 1rem;
+    button {
+      padding: 8px 16px;
+      margin-left: 5px;
+      background-color: #4caf50;
       border: none;
       border-radius: 6px;
+      color: white;
       cursor: pointer;
-      font-weight: 600;
     }
-    .controls button:hover {
-      background: #4caf50;
-    }
-    input[type="text"] {
-      padding: 0.5rem;
-      border-radius: 6px;
-      border: 1px solid #ccc;
-      width: 350px;
-      margin-top: 10px;
-    }
-    .section {
-      margin-top: 2.5rem;
-      border-bottom: 2px solid var(--border-light);
-    }
-    body.dark .section {
-      border-color: var(--border-dark);
-    }
-    h2 {
-      font-size: 1.5rem;
-      margin-bottom: 0.5rem;
-      color: var(--accent);
-    }
-    .stock-category {
-      margin-bottom: 2rem;
-    }
-    ul {
-      list-style: none;
-      padding-left: 0;
-    }
-    li {
-      background: var(--card-bg-light);
-      margin-bottom: 0.4rem;
-      padding: 0.5rem 1rem;
-      border-radius: 6px;
-      display: flex;
-      justify-content: space-between;
-      transition: background 0.3s;
-    }
-    body.dark li {
-      background: var(--card-bg-dark);
-    }
-    .footer {
-      margin-top: 4rem;
-      font-size: 0.9rem;
-      text-align: center;
-      color: gray;
-    }
-    #saveStatus, #testStatus {
-      font-size: 0.9rem;
-      margin-top: 5px;
+    button:hover { background-color: #45a049; }
+    .footer { font-size: 0.8em; margin-top: 50px; color: #888; }
+    .toggle-dark {
+      float: right;
+      cursor: pointer;
+      font-size: 0.9em;
+      background: none;
+      border: none;
+      color: inherit;
     }
   </style>
 </head>
 <body>
-  <div class="header">
-    <h1>🌿 Grow a Garden Admin</h1>
-    <div class="controls">
-      <button onclick="toggleDarkMode()" id="darkToggle">🌙 Dark Mode</button>
-      <button onclick="location.href='/logout'">🚪 Logout</button>
-    </div>
+  <button class="toggle-dark" onclick="toggleDarkMode()">🌙 Toggle Dark Mode</button>
+  <h1>🌻 Grow a Garden Admin Panel</h1>
+
+  <div class="section">
+    <form action="/save_webhook" method="POST">
+      <div class="input-group">
+        <label><strong>Discord Webhook:</strong></label>
+        <input type="text" name="webhook" value="{{ config['Webhook'] }}">
+        <button type="submit">Save</button>
+        <button type="button" id="test-webhook-btn">Send Test</button>
+      </div>
+    </form>
   </div>
 
   <div class="section">
-    <h2>🔗 Webhook Configuration</h2>
-    <input type="text" id="webhookInput" value="{{ config['Webhook'] }}">
-    <button onclick="saveWebhook()">Save</button>
-    <button onclick="sendTestWebhook()" style="background-color: #42a5f5;">📣 Test Webhook</button>
-    <p id="saveStatus"></p>
-    <p id="testStatus"></p>
-  </div>
-
-  <div class="section">
-    <h2>🌱 Live Stock</h2>
-    <div id="stock-sections">
-      {% for category, items in stock.items() %}
-        <div class="stock-category">
-          <h3>{{ category }}</h3>
-          <ul id="{{ category | lower | replace(' ', '-') }}-stock">
-            {% for item, qty in items.items() %}
-              <li><span class="item">{{ item }}</span> <strong class="qty">{{ qty }}</strong></li>
-            {% endfor %}
-          </ul>
-        </div>
+    <h2>🌱 Seed Stock</h2>
+    <ul id="seed-stock">
+      {% for seed, qty in stock.get('SEEDS STOCK', {}).items() %}
+        <li><strong>{{ seed }}</strong>: {{ qty }}</li>
       {% endfor %}
-    </div>
+    </ul>
   </div>
 
   <div class="section">
     <h2>⛈️ Weather Events</h2>
-    <div id="weather">
+    <p id="weather-status">
       {% if weather.active %}
-        <p><strong>Active:</strong> {{ weather.event }}</p>
+        <strong>Active:</strong> {{ weather.event }}
       {% else %}
-        <p>No active weather events.</p>
+        No active weather events.
       {% endif %}
-    </div>
+    </p>
   </div>
 
-  <div class="footer">
-    🌿 Live updates enabled | Last updated: <span id="lastUpdated">--</span>
-  </div>
+  <p class="footer">🔁 Last updated: <span id="last-updated">now</span><br>Auto-refreshes live using Socket.IO</p>
 
+  <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
   <script>
     const socket = io();
 
-    socket.on('stock_update', function(data) {
-      const stockContainer = document.getElementById('stock-sections');
-      stockContainer.innerHTML = '';
-      for (const category in data) {
-        const section = document.createElement('div');
-        section.className = "stock-category";
-        section.innerHTML = `<h3>${category}</h3>`;
-        const ul = document.createElement('ul');
-        for (const item in data[category]) {
-          const qty = data[category][item];
-          const li = document.createElement('li');
-          li.innerHTML = `<span class="item">${item}</span> <strong class="qty">${qty}</strong>`;
-          ul.appendChild(li);
-        }
-        section.appendChild(ul);
-        stockContainer.appendChild(section);
+    socket.on("stock_update", data => {
+      const ul = document.getElementById("seed-stock");
+      ul.innerHTML = "";
+      const items = data["SEEDS STOCK"] || {};
+      for (const [name, qty] of Object.entries(items)) {
+        const li = document.createElement("li");
+        li.innerHTML = `<strong>${name}</strong>: ${qty}`;
+        ul.appendChild(li);
       }
     });
 
-    socket.on('weather_update', function(data) {
-      const weatherDiv = document.getElementById('weather');
+    socket.on("weather_update", data => {
+      const weather = document.getElementById("weather-status");
       if (data.active) {
-        weatherDiv.innerHTML = `<p><strong>Active:</strong> ${data.event}</p>`;
+        weather.innerHTML = `<strong>Active:</strong> ${data.event}`;
       } else {
-        weatherDiv.innerHTML = `<p>No active weather events.</p>`;
+        weather.textContent = "No active weather events.";
       }
     });
 
-    socket.on('last_updated', function(data) {
-      document.getElementById('lastUpdated').textContent = data.timestamp;
+    socket.on("last_updated", data => {
+      document.getElementById("last-updated").textContent = data.timestamp;
     });
 
-    function saveWebhook() {
-      const webhook = document.getElementById("webhookInput").value;
-      fetch("/save_webhook", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ webhook })
-      })
-      .then(res => res.json())
-      .then(data => {
-        document.getElementById("saveStatus").textContent = "✅ Webhook saved!";
-        setTimeout(() => document.getElementById("saveStatus").textContent = "", 3000);
-      });
-    }
-
-    function sendTestWebhook() {
-      const statusEl = document.getElementById("testStatus");
-      statusEl.textContent = "Sending test...";
-      fetch("/test_webhook", { method: "POST" })
-        .then(res => res.json())
-        .then(data => {
-          if (data.status === "ok") {
-            statusEl.textContent = "✅ Test webhook sent!";
-            statusEl.style.color = "green";
-          } else {
-            statusEl.textContent = "❌ Failed: " + data.message;
-            statusEl.style.color = "red";
+    document.querySelector("#test-webhook-btn")?.addEventListener("click", () => {
+      fetch("/send_test_webhook", { method: "POST" })
+        .then(res => res.text())
+        .then(text => {
+          try {
+            const data = JSON.parse(text);
+            alert("✅ Webhook sent!");
+          } catch {
+            console.warn("⚠️ Not JSON:", text);
+            if (text.includes("<!DOCTYPE html>")) {
+              alert("⚠️ Session expired or not logged in. Please log in again.");
+              window.location.href = "/";
+            }
           }
-        })
-        .catch(err => {
-          statusEl.textContent = "❌ Error: " + err.message;
-          statusEl.style.color = "red";
         });
-    }
+    });
 
     function toggleDarkMode() {
-      const dark = document.body.classList.toggle('dark');
-      localStorage.setItem("darkMode", dark);
-      document.getElementById("darkToggle").textContent = dark ? "☀️ Light Mode" : "🌙 Dark Mode";
+      document.body.classList.toggle("dark");
     }
-
-    if (localStorage.getItem("darkMode") === "true") toggleDarkMode();
   </script>
 </body>
 </html>
